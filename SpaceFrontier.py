@@ -32,8 +32,8 @@ from datetime import datetime, timedelta
 # ==================== CONSTANTS ====================
 
 # Screen dimensions (adaptable for mobile/desktop)
-SCREEN_WIDTH = 800
-SCREEN_HEIGHT = 1280
+SCREEN_WIDTH = 600
+SCREEN_HEIGHT = 800
 
 # Colors
 COLOR_BLACK = (0, 0, 0)
@@ -383,13 +383,13 @@ def create_new_game(player_name: str) -> GameState:
         )
         game.star_systems[system.id] = system
         
-        # Create 6-9 planets per system
+        # Create 6-9 planets per system (positions relative to screen center)
         num_planets = 6 + (sys_id % 4)
         for p_idx in range(num_planets):
             angle = (p_idx * 360 / num_planets) * math.pi / 180
             distance = 150 + (p_idx * 60)
-            px = 400 + distance * math.cos(angle)
-            py = 640 + distance * math.sin(angle)
+            px = SCREEN_WIDTH // 2 + distance * math.cos(angle)
+            py = SCREEN_HEIGHT // 2 + 150 + distance * math.sin(angle)
             
             planet = Planet(
                 id=f"planet_{planet_id_counter}",
@@ -410,13 +410,13 @@ def create_new_game(player_name: str) -> GameState:
     
     game.current_system = "sys_0"
     
-    # Create starting fleet
+    # Create starting fleet (positions relative to screen center)
     starting_ships = [
-        ("USS Enterprise", ShipType.SCOUT, (350, 600)),
-        ("USS Defender", ShipType.FIGHTER, (370, 620)),
-        ("USS Pioneer", ShipType.COLONY, (330, 580)),
-        ("USS Discovery", ShipType.SCIENCE, (390, 640)),
-        ("USS Prospector", ShipType.MINER, (310, 560)),
+        ("USS Enterprise", ShipType.SCOUT, (SCREEN_WIDTH//2 - 50, SCREEN_HEIGHT//2 + 150)),
+        ("USS Defender", ShipType.FIGHTER, (SCREEN_WIDTH//2 - 30, SCREEN_HEIGHT//2 + 170)),
+        ("USS Pioneer", ShipType.COLONY, (SCREEN_WIDTH//2 - 70, SCREEN_HEIGHT//2 + 130)),
+        ("USS Discovery", ShipType.SCIENCE, (SCREEN_WIDTH//2 - 10, SCREEN_HEIGHT//2 + 190)),
+        ("USS Prospector", ShipType.MINER, (SCREEN_WIDTH//2 - 90, SCREEN_HEIGHT//2 + 110)),
     ]
     
     for idx, (name, ship_type, pos) in enumerate(starting_ships):
@@ -437,7 +437,7 @@ def create_new_game(player_name: str) -> GameState:
                 name=f"Hostile {chr(65+sys_id)}",
                 enemy_type=np.random.choice([EnemyType.SCOUT, EnemyType.FIGHTER, EnemyType.CRUISER]),
                 system=f"sys_{sys_id}",
-                position=(400 + np.random.randint(-100, 100), 640 + np.random.randint(-100, 100)),
+                position=(SCREEN_WIDTH//2 + np.random.randint(-100, 100), SCREEN_HEIGHT//2 + 150 + np.random.randint(-100, 100)),
                 health=50 + sys_id * 20,
                 max_health=50 + sys_id * 20,
                 weapons=5 + sys_id * 3,
@@ -473,7 +473,7 @@ def update_game_state(game: GameState, dt: float):
                 ship.target_system = None
                 ship.travel_start_time = None
                 ship.travel_progress = 0.0
-                ship.position = (400, 640)
+                ship.position = (SCREEN_WIDTH//2, SCREEN_HEIGHT//2 + 150)
                 
                 game.add_log(f"{ship.name} arrived at {new_system}")
                 
@@ -824,7 +824,7 @@ def build_ship(game: GameState, ship_type: ShipType, system_id: str) -> bool:
         name=ship_name,
         ship_type=ship_type,
         system=system_id,
-        position=(400 + np.random.randint(-50, 50), 640 + np.random.randint(-50, 50))
+        position=(SCREEN_WIDTH//2 + np.random.randint(-50, 50), SCREEN_HEIGHT//2 + 150 + np.random.randint(-50, 50))
     )
     
     game.ships[ship_id] = ship
@@ -1050,6 +1050,8 @@ class SpaceFrontier:
         elif text == "Back":
             if self.view_mode == "tech":
                 self.view_mode = "galaxy"
+            elif self.view_mode == "ships":
+                self.view_mode = "galaxy"
             elif self.view_mode == "ship_detail":
                 self.view_mode = "ships"
             elif self.view_mode == "planet_detail":
@@ -1177,21 +1179,21 @@ class SpaceFrontier:
         
         # Title
         title = self.font_large.render("SPACE FRONTIER", True, COLOR_UI_BORDER)
-        self.screen.blit(title, (SCREEN_WIDTH//2 - title.get_width()//2, 200))
+        self.screen.blit(title, (SCREEN_WIDTH//2 - title.get_width()//2, int(SCREEN_HEIGHT * 0.25)))
         
         # Subtitle
         subtitle = self.font_small.render("A Real-Time Space Strategy Game", True, COLOR_TEXT_DIM)
-        self.screen.blit(subtitle, (SCREEN_WIDTH//2 - subtitle.get_width()//2, 250))
+        self.screen.blit(subtitle, (SCREEN_WIDTH//2 - subtitle.get_width()//2, int(SCREEN_HEIGHT * 0.31)))
         
         # Buttons
-        button_width = 300
-        button_height = 60
+        button_width = int(SCREEN_WIDTH * 0.5)
+        button_height = int(SCREEN_HEIGHT * 0.075)
         button_x = SCREEN_WIDTH//2 - button_width//2
         
         buttons_config = [
-            ("New Game", 400),
-            ("Load Game", 480),
-            ("Quit", 560),
+            ("New Game", int(SCREEN_HEIGHT * 0.5)),
+            ("Load Game", int(SCREEN_HEIGHT * 0.6)),
+            ("Quit", int(SCREEN_HEIGHT * 0.7)),
         ]
         
         for text, y in buttons_config:
@@ -1207,35 +1209,42 @@ class SpaceFrontier:
         self.screen.fill(COLOR_SPACE_BLUE)
         
         # Draw stars (background decoration)
+        header_height = int(SCREEN_HEIGHT * 0.19)
         for i in range(100):
             x = (i * 73) % SCREEN_WIDTH
-            y = (i * 117 + 200) % (SCREEN_HEIGHT - 300)
+            y = (i * 117 + header_height) % (SCREEN_HEIGHT - int(SCREEN_HEIGHT * 0.25))
             pygame.draw.circle(self.screen, COLOR_WHITE, (x, y), 1)
         
         # Header
-        pygame.draw.rect(self.screen, COLOR_UI_BG, (0, 0, SCREEN_WIDTH, 150))
+        pygame.draw.rect(self.screen, COLOR_UI_BG, (0, 0, SCREEN_WIDTH, header_height))
         draw_text(self.screen, "GALAXY MAP", (20, 20), self.font_large, COLOR_UI_BORDER)
-        draw_text(self.screen, f"Resources: {self.game.resources}", (20, 60), self.font_medium, COLOR_GOLD)
-        draw_text(self.screen, f"Deuterium: {self.game.deuterium}", (20, 90), self.font_medium, COLOR_SHIP_SCOUT)
+        draw_text(self.screen, f"Resources: {self.game.resources}", (20, int(header_height * 0.4)), self.font_medium, COLOR_GOLD)
+        draw_text(self.screen, f"Deuterium: {self.game.deuterium}", (20, int(header_height * 0.6)), self.font_medium, COLOR_SHIP_SCOUT)
         
-        # Navigation buttons
+        # Navigation buttons (responsive positioning)
+        btn_width = int(SCREEN_WIDTH * 0.2)
+        btn_height = int(header_height * 0.27)
         nav_buttons = [
-            ("System View", 520, 20),
-            ("Tech", 660, 20),
-            ("Save", 520, 70),
-            ("Ships", 660, 70),
+            ("System View", int(SCREEN_WIDTH * 0.52), 20),
+            ("Tech", int(SCREEN_WIDTH * 0.77), 20),
+            ("Save", int(SCREEN_WIDTH * 0.52), int(header_height * 0.47)),
+            ("Ships", int(SCREEN_WIDTH * 0.77), int(header_height * 0.47)),
         ]
         
         for text, x, y in nav_buttons:
-            btn = Button(pygame.Rect(x, y, 120, 40), text)
+            btn = Button(pygame.Rect(x, y, btn_width, btn_height), text)
             btn.draw(self.screen, self.font_small)
             self.buttons.append(btn)
         
-        # Draw star systems
+        # Draw star systems (scale to fit screen)
+        map_area_top = header_height + 10
+        map_area_height = SCREEN_HEIGHT - header_height - int(SCREEN_HEIGHT * 0.25)
+        scale_x = (SCREEN_WIDTH - 100) / 1000.0
+        scale_y = map_area_height / 1000.0
         for system in self.game.star_systems.values():
             if system.discovered:
-                sx = 100 + system.position[0] * 0.6
-                sy = 200 + system.position[1] * 0.6
+                sx = 50 + system.position[0] * scale_x
+                sy = map_area_top + system.position[1] * scale_y
                 
                 # Draw star
                 pygame.draw.circle(self.screen, system.star_color, (int(sx), int(sy)), 15)
@@ -1248,18 +1257,19 @@ class SpaceFrontier:
                 # Draw connection lines to other discovered systems
                 for other_system in self.game.star_systems.values():
                     if other_system.discovered and other_system.id != system.id:
-                        ox = 100 + other_system.position[0] * 0.6
-                        oy = 200 + other_system.position[1] * 0.6
+                        ox = 50 + other_system.position[0] * scale_x
+                        oy = map_area_top + other_system.position[1] * scale_y
                         pygame.draw.line(self.screen, COLOR_TEXT_DIM, (int(sx), int(sy)), (int(ox), int(oy)), 1)
         
         # Current system indicator
         current_sys = self.game.star_systems[self.game.current_system]
-        cx = 100 + current_sys.position[0] * 0.6
-        cy = 200 + current_sys.position[1] * 0.6
+        cx = 50 + current_sys.position[0] * scale_x
+        cy = map_area_top + current_sys.position[1] * scale_y
         pygame.draw.circle(self.screen, COLOR_SUCCESS, (int(cx), int(cy)), 20, 3)
         
         # Log area
-        self.render_log_area(SCREEN_HEIGHT - 200, 200)
+        log_height = int(SCREEN_HEIGHT * 0.25)
+        self.render_log_area(SCREEN_HEIGHT - log_height, log_height)
     
     def render_system_view(self):
         """Render current star system"""
@@ -1271,7 +1281,7 @@ class SpaceFrontier:
         system = self.game.star_systems[self.game.current_system]
         
         # Draw star at center
-        star_x, star_y = 400, 200
+        star_x, star_y = SCREEN_WIDTH // 2, int(SCREEN_HEIGHT * 0.25)
         pygame.draw.circle(self.screen, system.star_color, (star_x, star_y), 30)
         
         # System name
@@ -1336,8 +1346,9 @@ class SpaceFrontier:
                 draw_progress_bar(self.screen, bar_rect, enemy.health / enemy.max_health, COLOR_DANGER)
         
         # UI Panel
-        panel_y = SCREEN_HEIGHT - 400
-        pygame.draw.rect(self.screen, COLOR_UI_BG, (0, panel_y, SCREEN_WIDTH, 400))
+        panel_height = int(SCREEN_HEIGHT * 0.5)
+        panel_y = SCREEN_HEIGHT - panel_height
+        pygame.draw.rect(self.screen, COLOR_UI_BG, (0, panel_y, SCREEN_WIDTH, panel_height))
         pygame.draw.line(self.screen, COLOR_UI_BORDER, (0, panel_y), (SCREEN_WIDTH, panel_y), 2)
         
         # Selected ship info
@@ -1363,8 +1374,9 @@ class SpaceFrontier:
                 if ship.is_combat_capable():
                     action_buttons.append("Attack")
                 
+                btn_width = int((SCREEN_WIDTH * 0.45) / max(len(action_buttons), 1))
                 for i, text in enumerate(action_buttons):
-                    btn = Button(pygame.Rect(10 + i * 95, btn_y, 90, 35), text)
+                    btn = Button(pygame.Rect(10 + i * (btn_width + 5), btn_y, btn_width, 35), text)
                     btn.draw(self.screen, self.font_small)
                     self.buttons.append(btn)
         
@@ -1373,7 +1385,7 @@ class SpaceFrontier:
             planet = self.game.planets.get(self.game.selected_planet_id)
             if planet:
                 y_offset = panel_y + 10
-                x_offset = 400
+                x_offset = int(SCREEN_WIDTH * 0.52)
                 draw_text(self.screen, f"Planet: {planet.name}", (x_offset, y_offset), self.font_medium, COLOR_SUCCESS)
                 
                 if planet.scanned:
@@ -1387,8 +1399,9 @@ class SpaceFrontier:
                         
                         # Planet action buttons
                         btn_y = y_offset + 160
-                        btn1 = Button(pygame.Rect(x_offset, btn_y, 110, 35), "Build Mine")
-                        btn2 = Button(pygame.Rect(x_offset + 120, btn_y, 110, 35), "Build Defense")
+                        btn_width = int(SCREEN_WIDTH * 0.2)
+                        btn1 = Button(pygame.Rect(x_offset, btn_y, btn_width, 35), "Build Mine")
+                        btn2 = Button(pygame.Rect(x_offset + btn_width + 10, btn_y, btn_width, 35), "Build Defense")
                         btn1.draw(self.screen, self.font_small)
                         btn2.draw(self.screen, self.font_small)
                         self.buttons.append(btn1)
@@ -1398,14 +1411,15 @@ class SpaceFrontier:
         
         # Navigation buttons
         nav_y = panel_y + 10
+        nav_btn_width = int(SCREEN_WIDTH * 0.18)
         nav_buttons = [
             ("Galaxy Map", 10, SCREEN_HEIGHT - 50),
-            ("Tech", 130, SCREEN_HEIGHT - 50),
-            ("Ships", 230, SCREEN_HEIGHT - 50),
+            ("Tech", 10 + nav_btn_width + 10, SCREEN_HEIGHT - 50),
+            ("Ships", 10 + 2 * (nav_btn_width + 10), SCREEN_HEIGHT - 50),
         ]
         
         for text, x, y in nav_buttons:
-            btn = Button(pygame.Rect(x, y, 90, 35), text)
+            btn = Button(pygame.Rect(x, y, nav_btn_width, 35), text)
             btn.draw(self.screen, self.font_small)
             self.buttons.append(btn)
     
@@ -1420,7 +1434,8 @@ class SpaceFrontier:
         draw_text(self.screen, f"Resources: {self.game.resources}", (20, 70), self.font_medium, COLOR_GOLD)
         
         # Technology list
-        y_offset = 150
+        y_offset = int(SCREEN_HEIGHT * 0.19)
+        tech_spacing = int((SCREEN_HEIGHT - y_offset - 120) / len(TechType))
         for tech_type in TechType:
             level = getattr(self.game.tech, tech_type.name.lower())
             name = self.game.tech.get_name(tech_type)
@@ -1431,7 +1446,8 @@ class SpaceFrontier:
             draw_text(self.screen, name, (20, y_offset + 30), self.font_small, COLOR_TEXT_DIM)
             
             # Upgrade button
-            btn = Button(pygame.Rect(500, y_offset, 250, 40), f"Upgrade ({cost} res)")
+            btn_width = int(SCREEN_WIDTH * 0.42)
+            btn = Button(pygame.Rect(SCREEN_WIDTH - btn_width - 20, y_offset, btn_width, 40), f"Upgrade ({cost} res)")
             if self.game.resources >= cost:
                 btn.draw(self.screen, self.font_small)
                 self.buttons.append(btn)
@@ -1442,7 +1458,7 @@ class SpaceFrontier:
                 text_surf = self.font_small.render(btn.text, True, COLOR_TEXT_DIM)
                 self.screen.blit(text_surf, text_surf.get_rect(center=btn.rect.center))
             
-            y_offset += 80
+            y_offset += tech_spacing
         
         # Back button
         btn = Button(pygame.Rect(20, SCREEN_HEIGHT - 70, 120, 50), "Back")
@@ -1461,8 +1477,9 @@ class SpaceFrontier:
         draw_text(self.screen, f"Total Ships: {len(self.game.ships)}", (20, 100), self.font_small)
         
         # Ship list
-        y_offset = 150
-        for ship in list(self.game.ships.values())[:15]:  # Show first 15
+        y_offset = int(SCREEN_HEIGHT * 0.19)
+        max_ships_shown = int((SCREEN_HEIGHT * 0.31) / 50)
+        for ship in list(self.game.ships.values())[:max_ships_shown]:
             system_name = self.game.star_systems[ship.system].name
             
             # Ship info
@@ -1471,13 +1488,14 @@ class SpaceFrontier:
             
             draw_text(self.screen, f"{ship.name} ({ship.ship_type.value})", (50, y_offset), self.font_small)
             draw_text(self.screen, f"Location: {system_name}", (50, y_offset + 20), self.font_small, COLOR_TEXT_DIM)
-            draw_text(self.screen, f"HP: {ship.health}  Fuel: {ship.fuel}", (400, y_offset + 10), self.font_small)
+            draw_text(self.screen, f"HP: {ship.health}  Fuel: {ship.fuel}", (int(SCREEN_WIDTH * 0.67), y_offset + 10), self.font_small)
             
             y_offset += 50
         
         # Build ships section
-        build_y = SCREEN_HEIGHT - 400
-        pygame.draw.rect(self.screen, COLOR_UI_BG, (0, build_y, SCREEN_WIDTH, 400))
+        build_height = int(SCREEN_HEIGHT * 0.5)
+        build_y = SCREEN_HEIGHT - build_height
+        pygame.draw.rect(self.screen, COLOR_UI_BG, (0, build_y, SCREEN_WIDTH, build_height))
         draw_text(self.screen, "BUILD SHIPS", (20, build_y + 10), self.font_medium, COLOR_UI_BORDER)
         
         # Build buttons
@@ -1489,13 +1507,14 @@ class SpaceFrontier:
             (ShipType.MINER, 300),
         ]
         
+        btn_width = int((SCREEN_WIDTH - 50) / 2)
         for i, (ship_type, cost) in enumerate(ship_types_to_build):
             row = i // 2
             col = i % 2
-            x = 20 + col * 380
+            x = 20 + col * (btn_width + 10)
             y = button_y + row * 60
             
-            btn = Button(pygame.Rect(x, y, 360, 45), f"Build {ship_type.value} ({cost} res)")
+            btn = Button(pygame.Rect(x, y, btn_width, 45), f"Build {ship_type.value} ({cost} res)")
             btn.draw(self.screen, self.font_small)
             self.buttons.append(btn)
         
